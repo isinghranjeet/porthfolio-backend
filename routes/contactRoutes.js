@@ -281,48 +281,82 @@
 
 
 
-// routes/contactRoutes.js - YE PURA CODE REPLACE KARDO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const express = require('express');
 const router = express.Router();
 const Contact = require('../models/Contact');
 const crypto = require('crypto');
+const upload = require('../middleware/upload'); // ✅ Ye updated middleware use karo
 
-// Generate Gravatar URL
+// Generate Gravatar URL from email
 function generateGravatar(email, size = 200, defaultType = 'identicon') {
-  if (!email) return `https://www.gravatar.com/avatar/?s=${size}&d=${defaultType}&r=g`;
-  const hash = crypto.createHash('md5').update(email.trim().toLowerCase()).digest('hex');
+  if (!email) {
+    return `https://www.gravatar.com/avatar/?s=${size}&d=${defaultType}&r=g`;
+  }
+  
+  const normalized = email.trim().toLowerCase();
+  const hash = crypto.createHash('md5').update(normalized).digest('hex');
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=${defaultType}&r=g`;
 }
 
-// ✅ SUBMIT FEEDBACK - BASE64 IMAGE ACCEPT KARO
-router.post('/', async (req, res) => {
+// ✅ Submit feedback with file upload (FIXED)
+router.post('/', upload.single('profileImage'), async (req, res) => {
   try {
-    const { name, email, subject, message, profileImageBase64 } = req.body;
+    const { name, email, subject, message } = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
         message: 'Name, email, and message are required'
       });
+      // ✅ Ab file delete nahi karni kyunki memory mein hai
     }
 
     let profileImageData = null;
     
-    // ✅ Agar frontend se base64 image aaya hai
-    if (profileImageBase64 && profileImageBase64.startsWith('data:image')) {
-      const mimeType = profileImageBase64.split(';')[0].split(':')[1];
-      const fileName = `profile-${Date.now()}.${mimeType.split('/')[1] || 'jpg'}`;
-      
+    // ✅ Agar file upload hui hai to memory se process karo
+    if (req.file) {
+      // File buffer mein hai, directly save nahi kar rahe
       profileImageData = {
-        filename: fileName,
-        mimetype: mimeType,
-        size: Math.floor((profileImageBase64.length * 3) / 4), // Approximate size
-        data: profileImageBase64 // ✅ Pure base64 data store karo
+        filename: req.file.originalname,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        // ✅ File data ko base64 mein convert karo ya database mein store karo
+        data: req.file.buffer.toString('base64') // Temporary solution
       };
     }
 
-    const gravatarUrl = generateGravatar(email);
+    // Generate Gravatar as fallback
+    const gravatarUrl = generateGravatar(email, 200, 'retro');
 
     const contact = new Contact({
       name,
@@ -347,34 +381,42 @@ router.post('/', async (req, res) => {
       error: 'Server error',
       message: err.message 
     });
+    // ✅ Ab file cleanup ki need nahi hai
   }
 });
 
-// ✅ SERVE IMAGES FROM BASE64 DATA
-router.get('/images/:id', async (req, res) => {
+// ✅ Serve uploaded images (FIXED)
+router.get('/images/:filename', async (req, res) => {
   try {
-    const contact = await Contact.findById(req.params.id);
+    const filename = req.params.filename;
     
+    // ✅ Database se contact record dhundo
+    const contact = await Contact.findOne({ 
+      'profileImage.filename': filename 
+    });
+
     if (!contact || !contact.profileImage || !contact.profileImage.data) {
-      // Agar image nahi hai to Gravatar return karo
-      const gravatarUrl = generateGravatar(contact?.email);
-      return res.redirect(gravatarUrl);
+      return res.status(404).json({
+        success: false,
+        message: 'Image not found'
+      });
     }
 
-    // ✅ Base64 data ko image response mein convert karo
-    const base64Data = contact.profileImage.data.replace(/^data:image\/\w+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
+    // ✅ Base64 data ko image mein convert karo
+    const imageBuffer = Buffer.from(contact.profileImage.data, 'base64');
     
     res.set('Content-Type', contact.profileImage.mimetype);
     res.send(imageBuffer);
   } catch (err) {
     console.error('Error serving image:', err);
-    // Error case mein Gravatar redirect karo
-    res.redirect('https://www.gravatar.com/avatar/?s=200&d=identicon&r=g');
+    res.status(500).json({
+      success: false,
+      message: 'Error serving image'
+    });
   }
 });
 
-// ✅ GET ALL FEEDBACK
+// ✅ Get all feedback (YE CHANGE NAHI KARNA)
 router.get('/', async (req, res) => {
   try {
     const feedback = await Contact.find().sort({ date: -1 });
@@ -382,9 +424,9 @@ router.get('/', async (req, res) => {
     const feedbackWithImageUrls = feedback.map(item => {
       const feedbackObj = item.toObject();
       
-      // ✅ Agar custom image hai to uska URL, nahi to gravatar
-      if (feedbackObj.profileImage && feedbackObj.profileImage.data) {
-        feedbackObj.imageUrl = `/api/contact/images/${feedbackObj._id}`;
+      // ✅ Agar image hai to API URL use karo
+      if (feedbackObj.profileImage && feedbackObj.profileImage.filename) {
+        feedbackObj.imageUrl = `/api/contact/images/${feedbackObj.profileImage.filename}`;
       } else {
         feedbackObj.imageUrl = feedbackObj.gravatarUrl;
       }

@@ -15,42 +15,42 @@
 
 
 
-// const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
-// const contactSchema = new mongoose.Schema({
-//   name: { 
-//     type: String, 
-//     required: [true, 'Name is required'] 
-//   },
-//   email: { 
-//     type: String, 
-//     required: [true, 'Email is required'] 
-//   },
-//   subject: { 
-//     type: String, 
-//     default: 'General Inquiry' 
-//   },
-//   message: { 
-//     type: String, 
-//     required: [true, 'Message is required'] 
-//   },
-//   gravatarUrl: { 
-//     type: String 
-//   },
-//   profileImage: { // New field for uploaded image
-//     filename: String,
-//     originalName: String,
-//     path: String,
-//     mimetype: String,
-//     size: Number
-//   },
-//   date: { 
-//     type: Date, 
-//     default: Date.now 
-//   }
-// });
+const contactSchema = new mongoose.Schema({
+  name: { 
+    type: String, 
+    required: [true, 'Name is required'] 
+  },
+  email: { 
+    type: String, 
+    required: [true, 'Email is required'] 
+  },
+  subject: { 
+    type: String, 
+    default: 'General Inquiry' 
+  },
+  message: { 
+    type: String, 
+    required: [true, 'Message is required'] 
+  },
+  gravatarUrl: { 
+    type: String 
+  },
+  profileImage: { // New field for uploaded image
+    filename: String,
+    originalName: String,
+    path: String,
+    mimetype: String,
+    size: Number
+  },
+  date: { 
+    type: Date, 
+    default: Date.now 
+  }
+});
 
-// module.exports = mongoose.model('Contact', contactSchema);
+module.exports = mongoose.model('Contact', contactSchema);
 
 
 
@@ -89,41 +89,41 @@
 
 
 
-// models/Contact.js - YE PURA CODE REPLACE KARDO
+// // models/Contact.js - YE PURA CODE REPLACE KARDO
 
-const mongoose = require('mongoose'); // ✅ YE LINE ADD KARO
+// const mongoose = require('mongoose'); // ✅ YE LINE ADD KARO
 
-const contactSchema = new mongoose.Schema({
-  name: { 
-    type: String, 
-    required: true 
-  },
-  email: { 
-    type: String, 
-    required: true 
-  },
-  subject: { 
-    type: String, 
-    default: 'General Feedback' 
-  },
-  message: { 
-    type: String, 
-    required: true 
-  },
-  gravatarUrl: { 
-    type: String 
-  },
-  profileImage: {
-    filename: String,
-    mimetype: String, 
-    size: Number,
-    data: String // ✅ Base64 data store hoga
-  },
-  date: { 
-    type: Date, 
-    default: Date.now 
-  }
-});
+// const contactSchema = new mongoose.Schema({
+//   name: { 
+//     type: String, 
+//     required: true 
+//   },
+//   email: { 
+//     type: String, 
+//     required: true 
+//   },
+//   subject: { 
+//     type: String, 
+//     default: 'General Feedback' 
+//   },
+//   message: { 
+//     type: String, 
+//     required: true 
+//   },
+//   gravatarUrl: { 
+//     type: String 
+//   },
+//   profileImage: {
+//     filename: String,
+//     mimetype: String, 
+//     size: Number,
+//     data: String // ✅ Base64 data store hoga
+//   },
+//   date: { 
+//     type: Date, 
+//     default: Date.now 
+//   }
+// });
 
-// ✅ Export properly karo
-module.exports = mongoose.model('Contact', contactSchema);
+// // ✅ Export properly karo
+// module.exports = mongoose.model('Contact', contactSchema);
