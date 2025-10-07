@@ -281,13 +281,12 @@
 
 
 
-// routes/contact.js - YE PURA CODE REPLACE KARDO
+// routes/contactRoutes.js - YE PURA CODE REPLACE KARDO
 
 const express = require('express');
 const router = express.Router();
 const Contact = require('../models/Contact');
 const crypto = require('crypto');
-const upload = require('../middleware/upload'); // ✅ Updated middleware
 
 // Generate Gravatar URL
 function generateGravatar(email, size = 200, defaultType = 'identicon') {
@@ -296,10 +295,10 @@ function generateGravatar(email, size = 200, defaultType = 'identicon') {
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=${defaultType}&r=g`;
 }
 
-// ✅ SUBMIT FEEDBACK - MEMORY STORAGE USE KARO
-router.post('/', upload.single('profileImage'), async (req, res) => {
+// ✅ SUBMIT FEEDBACK - BASE64 IMAGE ACCEPT KARO
+router.post('/', async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const { name, email, subject, message, profileImageBase64 } = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -310,14 +309,16 @@ router.post('/', upload.single('profileImage'), async (req, res) => {
 
     let profileImageData = null;
     
-    // ✅ Agar file upload hui hai (memory mein hai)
-    if (req.file) {
+    // ✅ Agar frontend se base64 image aaya hai
+    if (profileImageBase64 && profileImageBase64.startsWith('data:image')) {
+      const mimeType = profileImageBase64.split(';')[0].split(':')[1];
+      const fileName = `profile-${Date.now()}.${mimeType.split('/')[1] || 'jpg'}`;
+      
       profileImageData = {
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size,
-        // ✅ File data ko base64 mein convert karo
-        data: `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+        filename: fileName,
+        mimetype: mimeType,
+        size: Math.floor((profileImageBase64.length * 3) / 4), // Approximate size
+        data: profileImageBase64 // ✅ Pure base64 data store karo
       };
     }
 
@@ -355,10 +356,9 @@ router.get('/images/:id', async (req, res) => {
     const contact = await Contact.findById(req.params.id);
     
     if (!contact || !contact.profileImage || !contact.profileImage.data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Image not found'
-      });
+      // Agar image nahi hai to Gravatar return karo
+      const gravatarUrl = generateGravatar(contact?.email);
+      return res.redirect(gravatarUrl);
     }
 
     // ✅ Base64 data ko image response mein convert karo
@@ -369,10 +369,8 @@ router.get('/images/:id', async (req, res) => {
     res.send(imageBuffer);
   } catch (err) {
     console.error('Error serving image:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Error serving image'
-    });
+    // Error case mein Gravatar redirect karo
+    res.redirect('https://www.gravatar.com/avatar/?s=200&d=identicon&r=g');
   }
 });
 
@@ -381,13 +379,18 @@ router.get('/', async (req, res) => {
   try {
     const feedback = await Contact.find().sort({ date: -1 });
     
-    const feedbackWithImageUrls = feedback.map(item => ({
-      ...item.toObject(),
+    const feedbackWithImageUrls = feedback.map(item => {
+      const feedbackObj = item.toObject();
+      
       // ✅ Agar custom image hai to uska URL, nahi to gravatar
-      imageUrl: item.profileImage && item.profileImage.data 
-        ? `/api/contact/images/${item._id}`
-        : item.gravatarUrl
-    }));
+      if (feedbackObj.profileImage && feedbackObj.profileImage.data) {
+        feedbackObj.imageUrl = `/api/contact/images/${feedbackObj._id}`;
+      } else {
+        feedbackObj.imageUrl = feedbackObj.gravatarUrl;
+      }
+      
+      return feedbackObj;
+    });
 
     res.json(feedbackWithImageUrls);
   } catch (err) {
