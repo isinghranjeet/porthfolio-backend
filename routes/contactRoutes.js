@@ -14,18 +14,16 @@ function generateGravatar(email, size = 200, defaultType = 'identicon') {
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=${defaultType}&r=g`;
 }
 
-// ✅ SUBMIT FEEDBACK - JSON COMPATIBLE (REMOVE MULTER)
+// ✅ SUBMIT FEEDBACK - JSON COMPATIBLE (NO MULTER)
 router.post('/', async (req, res) => {
   try {
+    console.log('🟢 POST /api/contact called');
+    console.log('📦 Request body keys:', Object.keys(req.body));
+    
     const { name, email, subject, message, profileImageBase64 } = req.body;
 
-    console.log('📨 Received data:', {
-      name,
-      email, 
-      hasImage: !!profileImageBase64,
-      imageLength: profileImageBase64?.length,
-      imageType: profileImageBase64?.substring(0, 20)
-    });
+    console.log('👤 User data:', { name, email, subject });
+    console.log('🖼️ Image data present:', !!profileImageBase64);
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -38,7 +36,7 @@ router.post('/', async (req, res) => {
     
     // ✅ Agar frontend se base64 image aaya hai
     if (profileImageBase64 && profileImageBase64.startsWith('data:image')) {
-      console.log('🖼️ Processing base64 image...');
+      console.log('✅ Processing base64 image upload...');
       
       const mimeType = profileImageBase64.split(';')[0].split(':')[1];
       const fileExtension = mimeType.split('/')[1] || 'jpg';
@@ -48,13 +46,14 @@ router.post('/', async (req, res) => {
         filename: fileName,
         originalName: fileName,
         mimetype: mimeType,
-        size: Math.floor((profileImageBase64.length * 3) / 4), // Approximate size
-        data: profileImageBase64 // Store complete base64 data
+        size: Math.floor((profileImageBase64.length * 3) / 4),
+        data: profileImageBase64
       };
       
-      console.log('✅ Image data prepared:', {
-        filename: fileName,
-        mimetype: mimeType
+      console.log('🖼️ Image info:', { 
+        filename: fileName, 
+        mimetype: mimeType,
+        size: profileImageBase64.length 
       });
     } else {
       console.log('❌ No valid image data received');
@@ -105,7 +104,7 @@ router.get('/images/:id', async (req, res) => {
     const base64Data = contact.profileImage.data.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
     
-    res.set('Content-Type', contact.profileImage.mimetype);
+    res.set('Content-Type', contact.profileImage.mimetype || 'image/jpeg');
     res.send(imageBuffer);
   } catch (err) {
     console.error('Error serving image:', err);
