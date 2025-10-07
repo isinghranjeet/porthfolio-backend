@@ -49,12 +49,22 @@
 
 
 
-// middleware/upload.js - ISE AISE CHANGE KARO:
+
+
+
+
+
+
+
+
+
+
+// middleware/upload.js - YE PURA CODE DELETE KARKE YEH DALDO
 
 const multer = require('multer');
 
-// ✅ Vercel compatible memory storage use karo
-const storage = multer.memoryStorage(); // File memory mein store hoga, disk pe nahi
+// ✅ Memory storage use karo - koi file save nahi hogi
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -62,7 +72,6 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Check file type
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
