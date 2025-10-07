@@ -1,8 +1,8 @@
-
-
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/database');
+const path = require('path'); // ✅ YE ADD KARO
+const fs = require('fs'); // ✅ YE ADD KARO
 require('dotenv').config();
 
 const app = express();
@@ -10,20 +10,19 @@ const app = express();
 connectDB();
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // ✅ Base64 images ke liye limit badhao
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ❌ YEH LINES COMMENT KARDO YA HATA DO:
-// ✅ Ensure uploads directory exists
-// const uploadsDir = path.join(__dirname, 'uploads');
-// if (!fs.existsSync(uploadsDir)) {
-//   fs.mkdirSync(uploadsDir, { recursive: true });
-//   console.log('Uploads directory created');
-// }
+// ✅ YE LINES UNCOMMENT KARO:
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Uploads directory created');
+}
 
-// ❌ YEH LINE BHI COMMENT KARDO:
 // ✅ Serve static files from uploads directory
-// app.use('/api/contact/images', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir)); // ✅ '/api/contact/images' ki jagah '/uploads' use karo
 
 // ✅ Routes
 app.use('/api/contact', require('./routes/contactRoutes'));
