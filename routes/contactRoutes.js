@@ -53,7 +53,6 @@
 
 
 
-
 const express = require('express');
 const router = express.Router();
 const Contact = require('../models/Contact');
@@ -61,6 +60,9 @@ const crypto = require('crypto');
 const upload = require('../middleware/upload');
 const path = require('path');
 const fs = require('fs');
+
+// Production backend URL (replace with your Vercel URL)
+const BASE_URL = 'https://porthfolio-backend.vercel.app';
 
 // Generate Gravatar URL from email
 function generateGravatar(email, size = 200, defaultType = 'identicon') {
@@ -73,16 +75,13 @@ function generateGravatar(email, size = 200, defaultType = 'identicon') {
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=${defaultType}&r=g`;
 }
 
-// ✅ Submit feedback with file upload
+// Submit feedback with file upload
 router.post('/', upload.single('profileImage'), async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
 
     if (!name || !email || !message) {
-      // If there's an uploaded file but validation fails, delete it
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({
         success: false,
         message: 'Name, email, and message are required'
@@ -90,8 +89,6 @@ router.post('/', upload.single('profileImage'), async (req, res) => {
     }
 
     let profileImageData = null;
-    
-    // If file was uploaded
     if (req.file) {
       profileImageData = {
         filename: req.file.filename,
@@ -102,7 +99,6 @@ router.post('/', upload.single('profileImage'), async (req, res) => {
       };
     }
 
-    // Generate Gravatar as fallback
     const gravatarUrl = generateGravatar(email, 200, 'retro');
 
     const contact = new Contact({
@@ -122,10 +118,7 @@ router.post('/', upload.single('profileImage'), async (req, res) => {
       data: contact
     });
   } catch (err) {
-    // Clean up uploaded file if error occurs
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
+    if (req.file) fs.unlinkSync(req.file.path);
     console.error('Error submitting feedback:', err);
     res.status(500).json({ 
       success: false, 
@@ -135,48 +128,35 @@ router.post('/', upload.single('profileImage'), async (req, res) => {
   }
 });
 
-// ✅ Serve uploaded images
+// Serve uploaded images
 router.get('/images/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
     const imagePath = path.join(__dirname, '../uploads', filename);
-    
-    // Check if file exists
     if (!fs.existsSync(imagePath)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Image not found'
-      });
+      return res.status(404).json({ success: false, message: 'Image not found' });
     }
-
-    // Send the image file
     res.sendFile(imagePath);
   } catch (err) {
     console.error('Error serving image:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Error serving image'
-    });
+    res.status(500).json({ success: false, message: 'Error serving image' });
   }
 });
 
-// ✅ Get all feedback
+// Get all feedback
 router.get('/', async (req, res) => {
   try {
     const feedback = await Contact.find().sort({ date: -1 });
-    
-    // Transform data to include image URLs
+
     const feedbackWithImageUrls = feedback.map(item => {
       const feedbackObj = item.toObject();
-      
-      // If user uploaded an image, create URL for it
+
       if (feedbackObj.profileImage && feedbackObj.profileImage.filename) {
-        feedbackObj.imageUrl = `/api/contact/images/${feedbackObj.profileImage.filename}`;
+        feedbackObj.imageUrl = `${BASE_URL}/api/contact/images/${feedbackObj.profileImage.filename}`;
       } else {
-        // Use Gravatar as fallback
         feedbackObj.imageUrl = feedbackObj.gravatarUrl;
       }
-      
+
       return feedbackObj;
     });
 
@@ -192,7 +172,6 @@ router.get('/', async (req, res) => {
 });
 
 module.exports = router;
-
 
 
 
